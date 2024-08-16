@@ -1,0 +1,104 @@
+mode:
+  type: Standalone
+
+props:
+  sql-show: true
+
+dataSources:
+  ds_0:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: com.mysql.cj.jdbc.Driver
+    jdbcUrl: jdbc:mysql://localhost:3306/testshardingjdbc?serverTimezone=Asia/Shanghai&userUnicode=true&characterEncoding=utf-8&ssl-mode=REQUIRED
+    username: root
+    password: root
+  ds_1:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: com.mysql.cj.jdbc.Driver
+    jdbcUrl: jdbc:mysql://localhost:3306/testshardingjdbc2?serverTimezone=Asia/Shanghai&userUnicode=true&characterEncoding=utf-8&ssl-mode=REQUIRED
+    username: root
+    password: root
+
+rules:
+  - !SHARDING
+    tables:
+      order:
+        actualDataNodes: ds_${0..1}.order
+        databaseStrategy:
+          standard:
+            shardingColumn: id  # 两张表分片键相同
+            shardingAlgorithmName: t_order_database
+      order_detail:
+        actualDataNodes: ds_${0..1}.order_detail
+        databaseStrategy:
+          standard:
+            shardingColumn: order_id  # 两张表分片键相同
+            shardingAlgorithmName: t_order_detail_database
+    defaultKeyGenerateStrategy:
+      column: id
+      keyGeneratorName: snowflake
+
+    shardingAlgorithms:
+      t_order_database:
+        type: INLINE
+        props:
+          algorithm-expression: ds_${id % 2}
+      t_order_detail_database:
+        type: INLINE
+        props:
+          algorithm-expression: ds_${order_id % 2}
+    bindingTables:  # 绑定表
+      - order, order_detail
+    keyGenerators:
+      snowflake:
+        type: SNOWFLAKE
+
+
+# 这种是自动分布分表 例如先配置了这个规则 然后再去生成表 创建表的时候会自己根据规则分库分表
+#    autoTables:
+#      dish:
+#        # 指定使用的数据源
+#        actualDataSources: ds_${['0', '1']}
+#        # 同时执行表和数据源
+#        shardingStrategy:
+#          standard:
+#            shardingColumn: id
+#            shardingAlgorithmName: mod
+#
+#    shardingAlgorithms:
+#      mod:
+#        type: MOD
+#        props:
+#          # 指定分片数量
+#          sharding-count: 2
+
+
+
+#mode:
+#  type: Standalone
+#
+#props:
+#  sql-show: true
+#
+#dataSources:
+#  ds_0:
+#    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+#    driverClassName: com.mysql.cj.jdbc.Driver
+#    jdbcUrl: jdbc:mysql://localhost:3306/testshardingjdbc?serverTimezone=Asia/Shanghai&userUnicode=true&characterEncoding=utf-8&ssl-mode=REQUIRED
+#    username: root
+#    password: root
+#  ds_1:
+#    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+#    driverClassName: com.mysql.cj.jdbc.Driver
+#    jdbcUrl: jdbc:mysql://localhost:3306/testshardingjdbc2?serverTimezone=Asia/Shanghai&userUnicode=true&characterEncoding=utf-8&ssl-mode=REQUIRED
+#    username: root
+#    password: root
+#
+#
+#rules:
+#  - !BROADCAST
+#    tables: # 广播表规则列表
+#      - testbroadcast
+#  - !SINGLE
+#    tables:
+#      # MySQL 风格
+#      - ds_0.* # 加载指定数据源中的全部单表
